@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Profile Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"></link>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+    <h2 class="text-4xl font-bold text-gray-800 mb-8">GitHub User Search</h2>
+    <div class="container mx-auto p-6 bg-white rounded-lg shadow-md max-w-2xl">
+        <div class="flex flex-col items-center">
+            <input id="input" type="text" placeholder="Enter GitHub Username" class="w-full p-3 text-lg border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-blue-500">
+            <button onclick="getProfile()" class="bg-blue-500 text-white px-6 py-3 text-lg rounded-lg hover:bg-blue-700 transition duration-300">Get Profile</button>
+        </div>
+        <div id="list" class="mt-8"></div>
+        <div id="repoList" class="mt-8"></div>
+        <canvas id="activityChart" class="mt-8 w-full h-64"></canvas>
+    </div>
+
+    <script>
+        const input = document.getElementById('input');
+        const list = document.getElementById('list');
+        const repoList = document.getElementById('repoList');
+        const activityChartCtx = document.getElementById('activityChart').getContext('2d');
+
+        const getProfile = async () => {
+            const username = input.value.trim();
+            const userResponse = await fetch(`https://api.github.com/users/${username}`);
+            const userBody = await userResponse.json();
+
+            if (userResponse.ok) {
+                list.innerHTML = `
+                    <div class="text-center border border-gray-300 rounded-lg p-6 bg-gray-50 mt-4 shadow-lg">
+                        <img src="${userBody.avatar_url}" alt="Profile picture" class="w-24 h-24 rounded-full mx-auto border-2 border-blue-500">
+                        <h3 class="text-2xl font-bold text-gray-800 mt-2">${userBody.name || 'No Name'}</h3>
+                        <p class="text-gray-600 mt-1">${userBody.bio || 'No Bio Available'}</p>
+                        <div class="mt-4 grid grid-cols-3 gap-4 text-center">
+                            <div class="p-3 bg-blue-100 rounded-lg">
+                                <span class="block text-gray-700 font-semibold">Repos</span>
+                                <span class="text-xl font-bold">${userBody.public_repos}</span>
+                            </div>
+                            <div class="p-3 bg-blue-100 rounded-lg">
+                                <span class="block text-gray-700 font-semibold">Followers</span>
+                                <span class="text-xl font-bold">${userBody.followers}</span>
+                            </div>
+                            <div class="p-3 bg-blue-100 rounded-lg">
+                                <span class="block text-gray-700 font-semibold">Following</span>
+                                <span class="text-xl font-bold">${userBody.following}</span>
+                            </div>
+                        </div>
+                        <a href="${userBody.html_url}" target="_blank" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700">View GitHub Profile</a>
+                    </div>
+                `;
+                
+                const reposResponse = await fetch(userBody.repos_url);
+                const reposBody = await reposResponse.json();
+                displayRepositories(reposBody);
+            } else {
+                list.innerHTML = `<div class="text-red-500 text-lg text-center">User not found.</div>`;
+            }
+        }
+
+        const displayRepositories = (repos) => {
+            repoList.innerHTML = '<h3 class="text-2xl font-bold text-gray-800">Repositories:</h3>';
+            repoList.innerHTML += '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">';
+            repos.forEach(repo => {
+                repoList.innerHTML += `
+                    <div class="p-4 border rounded-lg shadow-md bg-gray-50">
+                        <a href="${repo.html_url}" target="_blank" class="text-blue-500 text-lg font-semibold hover:underline">${repo.name}</a>
+                        <p class="text-gray-600 text-sm mt-1">${repo.description || 'No description'}</p>
+                        <p class="text-gray-500 text-xs mt-1">⭐ ${repo.stargazers_count} | 🍴 ${repo.forks_count}</p>
+                    </div>
+                `;
+            });
+            repoList.innerHTML += '</div>';
+        }
+    </script>
+</body>
+</html>
